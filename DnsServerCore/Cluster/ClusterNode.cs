@@ -1,6 +1,6 @@
 ﻿/*
 Technitium DNS Server
-Copyright (C) 2025  Shreyas Zare (shreyas@technitium.com)
+Copyright (C) 2026  Shreyas Zare (shreyas@technitium.com)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -193,13 +193,13 @@ namespace DnsServerCore.Cluster
 
             if (_apiClient is null)
             {
-                _apiClient = new HttpApiClient(_url, _clusterManager.DnsWebService.DnsServer.Proxy, _clusterManager.DnsWebService.DnsServer.PreferIPv6, false, new InternalDnsClient(_clusterManager.DnsWebService.DnsServer, this));
+                _apiClient = new HttpApiClient(_url, _clusterManager.DnsWebService.DnsServer.Proxy, _clusterManager.DnsWebService.DnsServer.IPv6Mode, false, new InternalDnsClient(_clusterManager.DnsWebService.DnsServer, this));
 
                 UserSession clusterApiToken = null;
 
                 foreach (UserSession session in _clusterManager.DnsWebService.AuthManager.Sessions)
                 {
-                    if ((session.Type == UserSessionType.ApiToken) && (session.TokenName == _clusterManager.ClusterDomain))
+                    if (session.Type == UserSessionType.ClusterApiToken)
                     {
                         clusterApiToken = session;
                         break;
