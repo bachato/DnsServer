@@ -44,9 +44,7 @@ $(function () {
         localStorage.setItem("optQueryLogsEntriesPerPage", $("#optQueryLogsEntriesPerPage").val());
     });
 
-    var optQueryLogsEntriesPerPage = localStorage.getItem("optQueryLogsEntriesPerPage");
-    if (optQueryLogsEntriesPerPage != null)
-        $("#optQueryLogsEntriesPerPage").val(optQueryLogsEntriesPerPage);
+    resetQueryLogsForm();
 
     $("#chkQueryLogsLiveUpdate").on("click", function () {
         if ($(this).prop("checked")) {
@@ -77,6 +75,10 @@ function resetQueryLogsForm() {
     $("#txtQueryLogStart").prop("disabled", false);
     $("#txtQueryLogEnd").prop("disabled", false);
     $("#btnQueryLogs").prop("disabled", false);
+
+    var optQueryLogsEntriesPerPage = localStorage.getItem("optQueryLogsEntriesPerPage");
+    if (optQueryLogsEntriesPerPage != null)
+        $("#optQueryLogsEntriesPerPage").val(optQueryLogsEntriesPerPage);
 }
 
 function refreshLogsTab() {
