@@ -80,19 +80,19 @@ namespace DnsServerCore.Auth
             switch (bR.ReadByte())
             {
                 case 1:
-                    _token = bR.ReadShortString();
+                    _token = bR.BaseStream.ReadShortString();
                     _type = (UserSessionType)bR.ReadByte();
 
-                    _tokenName = bR.ReadShortString();
+                    _tokenName = bR.BaseStream.ReadShortString();
                     if (_tokenName.Length == 0)
                         _tokenName = null;
 
-                    users.TryGetValue(bR.ReadShortString().ToLowerInvariant(), out _user);
+                    users.TryGetValue(bR.BaseStream.ReadShortString().ToLowerInvariant(), out _user);
 
-                    _lastSeen = bR.ReadDateTime();
+                    _lastSeen = bR.BaseStream.ReadDateTime();
                     _lastSeenRemoteAddress = IPAddressExtensions.ReadFrom(bR);
 
-                    _lastSeenUserAgent = bR.ReadShortString();
+                    _lastSeenUserAgent = bR.BaseStream.ReadShortString();
                     if (_lastSeenUserAgent.Length == 0)
                         _lastSeenUserAgent = null;
 
@@ -157,22 +157,22 @@ namespace DnsServerCore.Auth
         public void WriteTo(BinaryWriter bW)
         {
             bW.Write((byte)1);
-            bW.WriteShortString(_token);
+            bW.BaseStream.WriteShortString(_token);
             bW.Write((byte)_type);
 
             if (_tokenName is null)
                 bW.Write((byte)0);
             else
-                bW.WriteShortString(_tokenName);
+                bW.BaseStream.WriteShortString(_tokenName);
 
-            bW.WriteShortString(_user.Username);
-            bW.Write(_lastSeen);
+            bW.BaseStream.WriteShortString(_user.Username);
+            bW.BaseStream.WriteDateTime(_lastSeen);
             _lastSeenRemoteAddress.WriteTo(bW);
 
             if (_lastSeenUserAgent is null)
                 bW.Write((byte)0);
             else
-                bW.WriteShortString(_lastSeenUserAgent);
+                bW.BaseStream.WriteShortString(_lastSeenUserAgent);
         }
 
         public int CompareTo(UserSession other)

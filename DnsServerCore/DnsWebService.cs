@@ -438,10 +438,10 @@ namespace DnsServerCore
 
         private void ReadConfigFrom(Stream s)
         {
-            BinaryReader bR = new BinaryReader(s);
-
-            if (Encoding.ASCII.GetString(bR.ReadBytes(2)) != "WC") //format
+            if (Encoding.ASCII.GetString(s.ReadExactly(2)) != "WC") //format
                 throw new InvalidDataException("Web Service config file format is invalid.");
+
+            BinaryReader bR = new BinaryReader(s);
 
             int version = bR.ReadByte();
             if (version > 1)
@@ -476,8 +476,8 @@ namespace DnsServerCore
             _webServiceHttpToTlsRedirect = bR.ReadBoolean();
             _webServiceUseSelfSignedTlsCertificate = bR.ReadBoolean();
 
-            _webServiceTlsCertificatePath = bR.ReadShortString();
-            _webServiceTlsCertificatePassword = bR.ReadShortString();
+            _webServiceTlsCertificatePath = s.ReadShortString();
+            _webServiceTlsCertificatePassword = s.ReadShortString();
 
             if (_webServiceTlsCertificatePath.Length == 0)
                 _webServiceTlsCertificatePath = null;
@@ -504,7 +504,7 @@ namespace DnsServerCore
 
             CheckAndLoadSelfSignedCertificate(false, false);
 
-            _webServiceRealIpHeader = bR.ReadShortString();
+            _webServiceRealIpHeader = s.ReadShortString();
         }
 
         private void WriteConfigTo(Stream s)
@@ -530,16 +530,16 @@ namespace DnsServerCore
             bW.Write(_webServiceUseSelfSignedTlsCertificate);
 
             if (_webServiceTlsCertificatePath is null)
-                bW.WriteShortString(string.Empty);
+                s.WriteShortString(string.Empty);
             else
-                bW.WriteShortString(_webServiceTlsCertificatePath);
+                s.WriteShortString(_webServiceTlsCertificatePath);
 
             if (_webServiceTlsCertificatePassword is null)
-                bW.WriteShortString(string.Empty);
+                s.WriteShortString(string.Empty);
             else
-                bW.WriteShortString(_webServiceTlsCertificatePassword);
+                s.WriteShortString(_webServiceTlsCertificatePassword);
 
-            bW.WriteShortString(_webServiceRealIpHeader);
+            s.WriteShortString(_webServiceRealIpHeader);
         }
 
         #endregion

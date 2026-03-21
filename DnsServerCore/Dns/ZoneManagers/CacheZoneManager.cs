@@ -26,6 +26,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using TechnitiumLibrary.IO;
 using TechnitiumLibrary.Net;
 using TechnitiumLibrary.Net.Dns;
 using TechnitiumLibrary.Net.Dns.EDnsOptions;
@@ -111,10 +112,10 @@ namespace DnsServerCore.Dns.ZoneManagers
 
             using (FileStream fS = new FileStream(cacheZoneFile, FileMode.Open, FileAccess.Read))
             {
-                BinaryReader bR = new BinaryReader(fS);
-
-                if (Encoding.ASCII.GetString(bR.ReadBytes(2)) != "CZ")
+                if (Encoding.ASCII.GetString(fS.ReadExactly(2)) != "CZ")
                     throw new InvalidDataException("CacheZoneManager format is invalid.");
+
+                BinaryReader bR = new BinaryReader(fS);
 
                 int version = bR.ReadByte();
                 switch (version)

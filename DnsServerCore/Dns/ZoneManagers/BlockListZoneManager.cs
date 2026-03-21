@@ -228,10 +228,10 @@ namespace DnsServerCore.Dns.ZoneManagers
 
         private void ReadConfigFrom(Stream s, bool isConfigTransfer)
         {
-            BinaryReader bR = new BinaryReader(s);
-
-            if (Encoding.ASCII.GetString(bR.ReadBytes(2)) != "BL") //format
+            if (Encoding.ASCII.GetString(s.ReadExactly(2)) != "BL") //format
                 throw new InvalidDataException("DnsServer block list zone file format is invalid.");
+
+            BinaryReader bR = new BinaryReader(s);
 
             byte version = bR.ReadByte();
             switch (version)
@@ -241,11 +241,11 @@ namespace DnsServerCore.Dns.ZoneManagers
                     string[] blockListUrls = new string[count];
 
                     for (int i = 0; i < count; i++)
-                        blockListUrls[i] = bR.ReadShortString();
+                        blockListUrls[i] = s.ReadShortString();
 
                     _blockListUpdateIntervalHours = bR.ReadInt32();
 
-                    DateTime blockListLastUpdatedOn = bR.ReadDateTime();
+                    DateTime blockListLastUpdatedOn = s.ReadDateTime();
                     if (!isConfigTransfer)
                         _blockListLastUpdatedOn = blockListLastUpdatedOn;
 
@@ -284,10 +284,10 @@ namespace DnsServerCore.Dns.ZoneManagers
             bW.Write(Convert.ToByte(_blockListUrls.Count));
 
             foreach (string blockListUrl in _blockListUrls)
-                bW.WriteShortString(blockListUrl);
+                s.WriteShortString(blockListUrl);
 
             bW.Write(_blockListUpdateIntervalHours);
-            bW.Write(_blockListLastUpdatedOn);
+            s.WriteDateTime(_blockListLastUpdatedOn);
         }
 
         #endregion

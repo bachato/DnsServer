@@ -32,6 +32,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using TechnitiumLibrary;
+using TechnitiumLibrary.IO;
 using TechnitiumLibrary.Net;
 using TechnitiumLibrary.Net.Dns;
 using TechnitiumLibrary.Net.Dns.EDnsOptions;
@@ -467,10 +468,10 @@ namespace DnsServerCore.Dns.ZoneManagers
 
         public AuthZoneInfo LoadZoneFrom(Stream s, DateTime lastModified)
         {
-            BinaryReader bR = new BinaryReader(s);
-
-            if (Encoding.ASCII.GetString(bR.ReadBytes(2)) != "DZ")
+            if (Encoding.ASCII.GetString(s.ReadExactly(2)) != "DZ")
                 throw new InvalidDataException("DnsServer zone file format is invalid.");
+
+            BinaryReader bR = new BinaryReader(s);
 
             switch (bR.ReadByte())
             {

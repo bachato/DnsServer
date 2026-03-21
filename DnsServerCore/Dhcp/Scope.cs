@@ -123,13 +123,13 @@ namespace DnsServerCore.Dhcp
 
         public Scope(Stream s, LogManager log, DhcpServer dhcpServer)
         {
-            BinaryReader bR = new BinaryReader(s);
-
-            if (Encoding.ASCII.GetString(bR.ReadBytes(2)) != "SC")
+            if (Encoding.ASCII.GetString(s.ReadExactly(2)) != "SC")
                 throw new InvalidDataException("DhcpServer scope file format is invalid.");
 
             _log = log;
             _dhcpServer = dhcpServer;
+
+            BinaryReader bR = new BinaryReader(s);
 
             byte version = bR.ReadByte();
             switch (version)
@@ -144,7 +144,7 @@ namespace DnsServerCore.Dhcp
                 case 8:
                 case 9:
                 case 10:
-                    _name = bR.ReadShortString();
+                    _name = s.ReadShortString();
                     _enabled = bR.ReadBoolean();
 
                     ChangeNetwork(IPAddressExtensions.ReadFrom(bR), IPAddressExtensions.ReadFrom(bR), IPAddressExtensions.ReadFrom(bR));
@@ -162,7 +162,7 @@ namespace DnsServerCore.Dhcp
                         _pingCheckRetries = bR.ReadByte();
                     }
 
-                    _domainName = bR.ReadShortString();
+                    _domainName = s.ReadShortString();
                     if (string.IsNullOrWhiteSpace(_domainName))
                         _domainName = null;
 
@@ -174,7 +174,7 @@ namespace DnsServerCore.Dhcp
                             string[] domainSearchStrings = new string[count];
 
                             for (int i = 0; i < count; i++)
-                                domainSearchStrings[i] = bR.ReadShortString();
+                                domainSearchStrings[i] = s.ReadShortString();
 
                             _domainSearchList = domainSearchStrings;
                         }
@@ -196,11 +196,11 @@ namespace DnsServerCore.Dhcp
 
                     if (version >= 3)
                     {
-                        _serverHostName = bR.ReadShortString();
+                        _serverHostName = s.ReadShortString();
                         if (string.IsNullOrEmpty(_serverHostName))
                             _serverHostName = null;
 
-                        _bootFileName = bR.ReadShortString();
+                        _bootFileName = s.ReadShortString();
                         if (string.IsNullOrEmpty(_bootFileName))
                             _bootFileName = null;
                     }
@@ -264,7 +264,7 @@ namespace DnsServerCore.Dhcp
                             string[] ntpServerDomainNames = new string[count];
 
                             for (int i = 0; i < count; i++)
-                                ntpServerDomainNames[i] = bR.ReadShortString();
+                                ntpServerDomainNames[i] = s.ReadShortString();
 
                             _ntpServerDomainNames = ntpServerDomainNames;
                         }
@@ -292,7 +292,7 @@ namespace DnsServerCore.Dhcp
 
                             for (int i = 0; i < count; i++)
                             {
-                                string vendorClassIdentifier = bR.ReadShortString();
+                                string vendorClassIdentifier = s.ReadShortString();
                                 VendorSpecificInformationOption vendorSpecificInformation = new VendorSpecificInformationOption(bR.ReadBuffer());
 
                                 vendorInfo.Add(vendorClassIdentifier, vendorSpecificInformation);
@@ -341,7 +341,7 @@ namespace DnsServerCore.Dhcp
                             {
                                 DhcpOptionCode code = (DhcpOptionCode)bR.ReadByte();
                                 short length = bR.ReadInt16();
-                                byte[] value = bR.ReadBytes(length);
+                                byte[] value = s.ReadExactly(length);
 
                                 genericOptions[i] = new DhcpOption(code, value);
                             }
@@ -1598,7 +1598,7 @@ namespace DnsServerCore.Dhcp
             bW.Write(Encoding.ASCII.GetBytes("SC"));
             bW.Write((byte)10); //version
 
-            bW.WriteShortString(_name);
+            s.WriteShortString(_name);
             bW.Write(_enabled);
             _startingAddress.WriteTo(bW);
             _endingAddress.WriteTo(bW);
@@ -1615,7 +1615,7 @@ namespace DnsServerCore.Dhcp
             if (string.IsNullOrWhiteSpace(_domainName))
                 bW.Write((byte)0);
             else
-                bW.WriteShortString(_domainName);
+                s.WriteShortString(_domainName);
 
             if (_domainSearchList is null)
             {
@@ -1626,7 +1626,7 @@ namespace DnsServerCore.Dhcp
                 bW.Write(Convert.ToByte(_domainSearchList.Count));
 
                 foreach (string domainSearchString in _domainSearchList)
-                    bW.WriteShortString(domainSearchString);
+                    s.WriteShortString(domainSearchString);
             }
 
             bW.Write(_dnsUpdates);
@@ -1641,12 +1641,12 @@ namespace DnsServerCore.Dhcp
             if (string.IsNullOrEmpty(_serverHostName))
                 bW.Write((byte)0);
             else
-                bW.WriteShortString(_serverHostName);
+                s.WriteShortString(_serverHostName);
 
             if (string.IsNullOrEmpty(_bootFileName))
                 bW.Write((byte)0);
             else
-                bW.WriteShortString(_bootFileName);
+                s.WriteShortString(_bootFileName);
 
             if (_routerAddress is null)
                 IPAddress.Any.WriteTo(bW);
@@ -1702,7 +1702,7 @@ namespace DnsServerCore.Dhcp
                 bW.Write(Convert.ToByte(_ntpServerDomainNames.Count));
 
                 foreach (string ntpServerDomainName in _ntpServerDomainNames)
-                    bW.WriteShortString(ntpServerDomainName);
+                    s.WriteShortString(ntpServerDomainName);
             }
 
             if (_staticRoutes is null)
@@ -1727,7 +1727,7 @@ namespace DnsServerCore.Dhcp
 
                 foreach (KeyValuePair<string, VendorSpecificInformationOption> entry in _vendorInfo)
                 {
-                    bW.WriteShortString(entry.Key);
+                    s.WriteShortString(entry.Key);
                     bW.WriteBuffer(entry.Value.Information);
                 }
             }

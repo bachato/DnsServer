@@ -639,17 +639,17 @@ namespace DnsServerCore.Dns
 
         private void ReadConfigFrom(Stream s, bool isConfigTransfer)
         {
-            BinaryReader bR = new BinaryReader(s);
-
-            if (Encoding.ASCII.GetString(bR.ReadBytes(2)) != "DC") //format
+            if (Encoding.ASCII.GetString(s.ReadExactly(2)) != "DC") //format
                 throw new InvalidDataException("DNS Server config file format is invalid.");
+
+            BinaryReader bR = new BinaryReader(s);
 
             int version = bR.ReadByte();
             if ((version < 1) || (version > 3))
                 throw new InvalidDataException("DNS Server config version not supported.");
 
             //general
-            string serverDomain = bR.ReadShortString();
+            string serverDomain = s.ReadShortString();
             if (!isConfigTransfer)
             {
                 try
@@ -863,8 +863,8 @@ namespace DnsServerCore.Dns
             if (!isConfigTransfer)
                 _reverseProxyNetworkACL = reverseProxyNetworkACL;
 
-            string dnsTlsCertificatePath = bR.ReadShortString();
-            string dnsTlsCertificatePassword = bR.ReadShortString();
+            string dnsTlsCertificatePath = s.ReadShortString();
+            string dnsTlsCertificatePassword = s.ReadShortString();
 
             if (!isConfigTransfer)
             {
@@ -895,7 +895,7 @@ namespace DnsServerCore.Dns
                 }
             }
 
-            string dnsOverHttpRealIpHeader = bR.ReadShortString();
+            string dnsOverHttpRealIpHeader = s.ReadShortString();
             if (!isConfigTransfer)
                 _dnsOverHttpRealIpHeader = dnsOverHttpRealIpHeader;
 
@@ -906,8 +906,8 @@ namespace DnsServerCore.Dns
 
                 for (int i = 0; i < count; i++)
                 {
-                    string keyName = bR.ReadShortString();
-                    string sharedSecret = bR.ReadShortString();
+                    string keyName = s.ReadShortString();
+                    string sharedSecret = s.ReadShortString();
                     TsigAlgorithm algorithm = (TsigAlgorithm)bR.ReadByte();
 
                     tsigKeys.Add(keyName, new TsigKey(keyName, sharedSecret, algorithm));
@@ -1032,12 +1032,12 @@ namespace DnsServerCore.Dns
             NetProxyType proxyType = (NetProxyType)bR.ReadByte();
             if (proxyType != NetProxyType.None)
             {
-                string address = bR.ReadShortString();
+                string address = s.ReadShortString();
                 int port = bR.ReadInt32();
                 NetworkCredential credential = null;
 
                 if (bR.ReadBoolean()) //credential set
-                    credential = new NetworkCredential(bR.ReadShortString(), bR.ReadShortString());
+                    credential = new NetworkCredential(s.ReadShortString(), s.ReadShortString());
 
                 _proxy = NetProxy.CreateProxy(proxyType, address, port, credential);
 
@@ -1045,7 +1045,7 @@ namespace DnsServerCore.Dns
                 List<NetProxyBypassItem> bypassList = new List<NetProxyBypassItem>(count);
 
                 for (int i = 0; i < count; i++)
-                    bypassList.Add(new NetProxyBypassItem(bR.ReadShortString()));
+                    bypassList.Add(new NetProxyBypassItem(s.ReadShortString()));
 
                 _proxy.BypassList = bypassList;
             }
@@ -1117,7 +1117,7 @@ namespace DnsServerCore.Dns
             bW.Write((byte)3); //version
 
             //general
-            bW.WriteShortString(_serverDomain);
+            s.WriteShortString(_serverDomain);
 
             {
                 bW.Write(Convert.ToByte(_localEndPoints.Count));
@@ -1134,9 +1134,9 @@ namespace DnsServerCore.Dns
             bW.Write(_authZoneManager.DefaultSoaRecordTtl);
 
             if (_defaultResponsiblePerson is null)
-                bW.WriteShortString("");
+                s.WriteShortString("");
             else
-                bW.WriteShortString(_defaultResponsiblePerson.Address);
+                s.WriteShortString(_defaultResponsiblePerson.Address);
 
             bW.Write(_authZoneManager.UseSoaSerialDateScheme);
             bW.Write(_authZoneManager.MinSoaRefresh);
@@ -1255,16 +1255,16 @@ namespace DnsServerCore.Dns
             AuthZoneInfo.WriteNetworkACLTo(_reverseProxyNetworkACL, bW);
 
             if (_dnsTlsCertificatePath == null)
-                bW.WriteShortString(string.Empty);
+                s.WriteShortString(string.Empty);
             else
-                bW.WriteShortString(_dnsTlsCertificatePath);
+                s.WriteShortString(_dnsTlsCertificatePath);
 
             if (_dnsTlsCertificatePassword == null)
-                bW.WriteShortString(string.Empty);
+                s.WriteShortString(string.Empty);
             else
-                bW.WriteShortString(_dnsTlsCertificatePassword);
+                s.WriteShortString(_dnsTlsCertificatePassword);
 
-            bW.WriteShortString(_dnsOverHttpRealIpHeader);
+            s.WriteShortString(_dnsOverHttpRealIpHeader);
 
             //tsig
             if (_tsigKeys is null)
@@ -1277,8 +1277,8 @@ namespace DnsServerCore.Dns
 
                 foreach (KeyValuePair<string, TsigKey> tsigKey in _tsigKeys)
                 {
-                    bW.WriteShortString(tsigKey.Key);
-                    bW.WriteShortString(tsigKey.Value.SharedSecret);
+                    s.WriteShortString(tsigKey.Key);
+                    s.WriteShortString(tsigKey.Value.SharedSecret);
                     bW.Write((byte)tsigKey.Value.Algorithm);
                 }
             }
@@ -1342,7 +1342,7 @@ namespace DnsServerCore.Dns
             else
             {
                 bW.Write((byte)_proxy.Type);
-                bW.WriteShortString(_proxy.Address);
+                s.WriteShortString(_proxy.Address);
                 bW.Write(_proxy.Port);
 
                 NetworkCredential credential = _proxy.Credential;
@@ -1354,8 +1354,8 @@ namespace DnsServerCore.Dns
                 else
                 {
                     bW.Write(true);
-                    bW.WriteShortString(credential.UserName);
-                    bW.WriteShortString(credential.Password);
+                    s.WriteShortString(credential.UserName);
+                    s.WriteShortString(credential.Password);
                 }
 
                 //bypass list
@@ -1363,7 +1363,7 @@ namespace DnsServerCore.Dns
                     bW.Write(Convert.ToByte(_proxy.BypassList.Count));
 
                     foreach (NetProxyBypassItem item in _proxy.BypassList)
-                        bW.WriteShortString(item.Value);
+                        s.WriteShortString(item.Value);
                 }
             }
 

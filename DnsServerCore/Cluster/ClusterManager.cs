@@ -359,10 +359,10 @@ namespace DnsServerCore.Cluster
 
         private void ReadConfigFrom(Stream s)
         {
-            BinaryReader bR = new BinaryReader(s);
-
-            if (Encoding.ASCII.GetString(bR.ReadBytes(2)) != "CL") //format
+            if (Encoding.ASCII.GetString(s.ReadExactly(2)) != "CL") //format
                 throw new InvalidDataException("DNS Server Cluster config file format is invalid.");
+
+            BinaryReader bR = new BinaryReader(s);
 
             int version = bR.ReadByte();
             switch (version)
@@ -373,7 +373,7 @@ namespace DnsServerCore.Cluster
                     _heartbeatRetryIntervalSeconds = bR.ReadUInt16();
                     _configRefreshIntervalSeconds = bR.ReadUInt16();
                     _configRetryIntervalSeconds = bR.ReadUInt16();
-                    _configLastSynced = bR.ReadDateTime();
+                    _configLastSynced = s.ReadDateTime();
 
                     Dictionary<int, ClusterNode> clusterNodes = null;
                     int count = bR.ReadByte();
@@ -409,7 +409,7 @@ namespace DnsServerCore.Cluster
             bW.Write(_heartbeatRetryIntervalSeconds);
             bW.Write(_configRefreshIntervalSeconds);
             bW.Write(_configRetryIntervalSeconds);
-            bW.Write(_configLastSynced);
+            s.WriteDateTime(_configLastSynced);
 
             IReadOnlyDictionary<int, ClusterNode> clusterNodes = _clusterNodes;
             if (clusterNodes is null)

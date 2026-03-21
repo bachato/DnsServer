@@ -122,7 +122,7 @@ namespace DnsServerCore.Cluster
                 case 1:
                 case 2:
                     _id = bR.ReadInt32();
-                    _url = new Uri(bR.ReadShortString());
+                    _url = new Uri(bR.BaseStream.ReadShortString());
 
                     if (version >= 2)
                     {
@@ -653,7 +653,7 @@ namespace DnsServerCore.Cluster
         {
             bW.Write((byte)2); //version
             bW.Write(_id);
-            bW.WriteShortString(_url.OriginalString);
+            bW.BaseStream.WriteShortString(_url.OriginalString);
 
             bW.Write(Convert.ToByte(_ipAddresses.Count));
 

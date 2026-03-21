@@ -1,6 +1,6 @@
 ﻿/*
 Technitium DNS Server
-Copyright (C) 2025  Shreyas Zare (shreyas@technitium.com)
+Copyright (C) 2026  Shreyas Zare (shreyas@technitium.com)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -1748,7 +1748,7 @@ namespace DnsServerCore.Dns
 
             public HourlyStats(BinaryReader bR)
             {
-                if (Encoding.ASCII.GetString(bR.ReadBytes(2)) != "HS") //format
+                if (Encoding.ASCII.GetString(bR.BaseStream.ReadExactly(2)) != "HS") //format
                     throw new InvalidDataException("HourlyStats format is invalid.");
 
                 byte version = bR.ReadByte();
@@ -1865,7 +1865,7 @@ namespace DnsServerCore.Dns
 
             public StatCounter(BinaryReader bR)
             {
-                if (Encoding.ASCII.GetString(bR.ReadBytes(2)) != "SC") //format
+                if (Encoding.ASCII.GetString(bR.BaseStream.ReadExactly(2)) != "SC") //format
                     throw new InvalidDataException("StatCounter format is invalid.");
 
                 byte version = bR.ReadByte();
@@ -1906,7 +1906,7 @@ namespace DnsServerCore.Dns
                             _queryDomains = new ConcurrentDictionary<string, Counter>(1, count);
 
                             for (int i = 0; i < count; i++)
-                                _queryDomains.TryAdd(bR.ReadShortString(), new Counter(bR.ReadInt32()));
+                                _queryDomains.TryAdd(bR.BaseStream.ReadShortString(), new Counter(bR.ReadInt32()));
                         }
 
                         {
@@ -1914,7 +1914,7 @@ namespace DnsServerCore.Dns
                             _queryBlockedDomains = new ConcurrentDictionary<string, Counter>(1, count);
 
                             for (int i = 0; i < count; i++)
-                                _queryBlockedDomains.TryAdd(bR.ReadShortString(), new Counter(bR.ReadInt32()));
+                                _queryBlockedDomains.TryAdd(bR.BaseStream.ReadShortString(), new Counter(bR.ReadInt32()));
                         }
 
                         {
@@ -1986,7 +1986,7 @@ namespace DnsServerCore.Dns
                             _queryDomains = new ConcurrentDictionary<string, Counter>(1, count);
 
                             for (int i = 0; i < count; i++)
-                                _queryDomains.TryAdd(bR.ReadShortString(), new Counter(bR.ReadInt64()));
+                                _queryDomains.TryAdd(bR.BaseStream.ReadShortString(), new Counter(bR.ReadInt64()));
                         }
 
                         {
@@ -1994,7 +1994,7 @@ namespace DnsServerCore.Dns
                             _queryBlockedDomains = new ConcurrentDictionary<string, Counter>(1, count);
 
                             for (int i = 0; i < count; i++)
-                                _queryBlockedDomains.TryAdd(bR.ReadShortString(), new Counter(bR.ReadInt64()));
+                                _queryBlockedDomains.TryAdd(bR.BaseStream.ReadShortString(), new Counter(bR.ReadInt64()));
                         }
 
                         {
@@ -2391,7 +2391,7 @@ namespace DnsServerCore.Dns
                     bW.Write(_queryDomains.Count);
                     foreach (KeyValuePair<string, Counter> queryDomain in _queryDomains)
                     {
-                        bW.WriteShortString(queryDomain.Key);
+                        bW.BaseStream.WriteShortString(queryDomain.Key);
                         bW.Write(queryDomain.Value.Count);
                     }
                 }
@@ -2400,7 +2400,7 @@ namespace DnsServerCore.Dns
                     bW.Write(_queryBlockedDomains.Count);
                     foreach (KeyValuePair<string, Counter> queryBlockedDomain in _queryBlockedDomains)
                     {
-                        bW.WriteShortString(queryBlockedDomain.Key);
+                        bW.BaseStream.WriteShortString(queryBlockedDomain.Key);
                         bW.Write(queryBlockedDomain.Value.Count);
                     }
                 }

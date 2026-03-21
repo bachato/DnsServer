@@ -352,17 +352,17 @@ namespace DnsServerCore
 
         private void ReadConfigFrom(Stream s)
         {
-            BinaryReader bR = new BinaryReader(s);
-
-            if (Encoding.ASCII.GetString(bR.ReadBytes(2)) != "LS") //format
+            if (Encoding.ASCII.GetString(s.ReadExactly(2)) != "LS") //format
                 throw new InvalidDataException("DnsServer log config file format is invalid.");
+
+            BinaryReader bR = new BinaryReader(s);
 
             byte version = bR.ReadByte();
             switch (version)
             {
                 case 1:
                     _loggingType = (LoggingType)bR.ReadByte();
-                    _logFolder = bR.ReadShortString();
+                    _logFolder = s.ReadShortString();
                     _maxLogFileDays = bR.ReadInt32();
                     _useLocalTime = bR.ReadBoolean();
                     break;
@@ -380,7 +380,7 @@ namespace DnsServerCore
             bW.Write((byte)1); //version
 
             bW.Write((byte)_loggingType);
-            bW.WriteShortString(_logFolder);
+            s.WriteShortString(_logFolder);
             bW.Write(_maxLogFileDays);
             bW.Write(_useLocalTime);
         }

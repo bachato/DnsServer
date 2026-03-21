@@ -26,6 +26,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using TechnitiumLibrary.IO;
 using TechnitiumLibrary.Net;
 using TechnitiumLibrary.Security.OTP;
 
@@ -294,15 +295,15 @@ namespace DnsServerCore.Auth
 
         private void ReadConfigFrom(Stream s, bool isConfigTransfer)
         {
-            BinaryReader bR = new BinaryReader(s);
-
-            if (Encoding.ASCII.GetString(bR.ReadBytes(2)) != "AS") //format
+            if (Encoding.ASCII.GetString(s.ReadExactly(2)) != "AS") //format
                 throw new InvalidDataException("DNS Server auth config file format is invalid.");
 
             ConcurrentDictionary<string, Group> groups = new ConcurrentDictionary<string, Group>(1, 4);
             ConcurrentDictionary<string, User> users = new ConcurrentDictionary<string, User>(1, 4);
             ConcurrentDictionary<PermissionSection, Permission> permissions = new ConcurrentDictionary<PermissionSection, Permission>(1, 11);
             ConcurrentDictionary<string, UserSession> sessions = new ConcurrentDictionary<string, UserSession>(1, 10);
+
+            BinaryReader bR = new BinaryReader(s);
 
             int version = bR.ReadByte();
             switch (version)

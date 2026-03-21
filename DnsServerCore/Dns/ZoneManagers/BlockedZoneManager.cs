@@ -205,10 +205,10 @@ namespace DnsServerCore.Dns.ZoneManagers
 
         private void ReadConfigFrom(Stream s)
         {
-            BinaryReader bR = new BinaryReader(s);
-
-            if (Encoding.ASCII.GetString(bR.ReadBytes(2)) != "BZ") //format
+            if (Encoding.ASCII.GetString(s.ReadExactly(2)) != "BZ") //format
                 throw new InvalidDataException("DnsServer blocked zone file format is invalid.");
+
+            BinaryReader bR = new BinaryReader(s);
 
             byte version = bR.ReadByte();
             switch (version)
@@ -222,7 +222,7 @@ namespace DnsServerCore.Dns.ZoneManagers
                     zoneManager.LoadSpecialPrimaryZones(delegate ()
                     {
                         if (i++ < length)
-                            return bR.ReadShortString();
+                            return s.ReadShortString();
 
                         return null;
                     }, _soaRecord, _nsRecord);
@@ -246,7 +246,7 @@ namespace DnsServerCore.Dns.ZoneManagers
             bW.Write(blockedZones.Count);
 
             foreach (AuthZoneInfo zone in blockedZones)
-                bW.WriteShortString(zone.Name);
+                s.WriteShortString(zone.Name);
         }
 
         #endregion
