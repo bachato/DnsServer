@@ -3875,6 +3875,7 @@ namespace DnsServerCore.Dns
             DnsResourceRecord lastRR = response.GetLastAnswerRecord();
             EDnsOption[] eDnsClientSubnetOption = null;
             DnsDatagram newResponse = null;
+            string cnameLoopDetectedDomain = null;
             double responseRtt = 0.0;
 
             if (response.Metadata is not null)
@@ -3892,7 +3893,10 @@ namespace DnsServerCore.Dns
             {
                 string cnameDomain = (lastRR.RDATA as DnsCNAMERecordData).Domain;
                 if (lastRR.Name.Equals(cnameDomain, StringComparison.OrdinalIgnoreCase))
+                {
+                    cnameLoopDetectedDomain = cnameDomain;
                     break; //loop detected
+                }
 
                 DnsDatagram newRequest = new DnsDatagram(0, false, DnsOpcode.StandardQuery, false, false, request.RecursionDesired, false, false, request.CheckingDisabled, DnsResponseCode.NoError, new DnsQuestionRecord[] { new DnsQuestionRecord(cnameDomain, request.Question[0].Type, request.Question[0].Class) }, null, null, null, _udpPayloadSize, request.DnssecOk ? EDnsHeaderFlags.DNSSEC_OK : EDnsHeaderFlags.None, eDnsClientSubnetOption);
 
@@ -3973,8 +3977,6 @@ namespace DnsServerCore.Dns
                     break; //cname was resolved
                 }
 
-                bool foundRepeat = false;
-
                 foreach (DnsResourceRecord newResponseAnswerRecord in newResponse.Answer)
                 {
                     if ((newResponseAnswerRecord.Type == DnsResourceRecordType.CNAME) || (newResponseAnswerRecord.Type == DnsResourceRecordType.DNAME))
@@ -3983,19 +3985,19 @@ namespace DnsServerCore.Dns
                         {
                             if (newResponseAnswerRecord.Equals(answerRecord))
                             {
-                                foundRepeat = true;
+                                cnameLoopDetectedDomain = (newResponseAnswerRecord.RDATA as DnsCNAMERecordData).Domain;
                                 break;
                             }
                         }
 
-                        if (foundRepeat)
+                        if (cnameLoopDetectedDomain is not null)
                             break;
                     }
 
                     newAnswer.Add(newResponseAnswerRecord);
                 }
 
-                if (foundRepeat)
+                if (cnameLoopDetectedDomain is not null)
                     break; //loop detected
 
                 lastResponse = newResponse;
@@ -4005,6 +4007,7 @@ namespace DnsServerCore.Dns
             DnsResponseCode rcode;
             IReadOnlyList<DnsResourceRecord> authority;
             IReadOnlyList<DnsResourceRecord> additional;
+            List<EDnsOption> options = null;
 
             if (newResponse is null)
             {
@@ -4025,7 +4028,22 @@ namespace DnsServerCore.Dns
             }
             else
             {
-                rcode = newResponse.RCODE;
+                if (cnameLoopDetectedDomain is not null)
+                {
+                    rcode = DnsResponseCode.ServerFailure;
+
+                    options = new List<EDnsOption>(4)
+                    {
+                        new EDnsOption(EDnsOptionCode.EXTENDED_DNS_ERROR, new EDnsExtendedDnsErrorOptionData(EDnsExtendedDnsErrorCode.Other, "CNAME loop detected at " + cnameLoopDetectedDomain + "."))
+                    };
+                }
+                else
+                {
+                    if (queryCount >= MAX_CNAME_HOPS)
+                        rcode = DnsResponseCode.ServerFailure;
+                    else
+                        rcode = newResponse.RCODE;
+                }
 
                 if (newAuthority.Count == 0)
                 {
@@ -4037,10 +4055,35 @@ namespace DnsServerCore.Dns
                     authority = newAuthority;
                 }
 
-                additional = newResponse.Additional;
+                if ((newResponse.Additional.Count == 0) || (options is null))
+                {
+                    additional = newResponse.Additional;
+                }
+                else if ((newResponse.Additional.Count == 1) && (newResponse.Additional[0].RDATA is DnsOPTRecordData opt))
+                {
+                    options.AddRange(opt.Options);
+                    additional = [];
+                }
+                else
+                {
+                    List<DnsResourceRecord> newAdditional = new List<DnsResourceRecord>();
+
+                    foreach (DnsResourceRecord additionalRecord in newResponse.Additional)
+                    {
+                        if (additionalRecord.Type == DnsResourceRecordType.OPT)
+                        {
+                            options.AddRange((additionalRecord.RDATA as DnsOPTRecordData).Options);
+                            continue;
+                        }
+
+                        newAdditional.Add(additionalRecord);
+                    }
+
+                    additional = newAdditional;
+                }
             }
 
-            DnsDatagram finalResponse = new DnsDatagram(request.Identifier, true, DnsOpcode.StandardQuery, isAuthoritativeAnswer, false, request.RecursionDesired, isRecursionAllowed, false, request.CheckingDisabled, rcode, request.Question, newAnswer, authority, additional) { Tag = response.Tag };
+            DnsDatagram finalResponse = new DnsDatagram(request.Identifier, true, DnsOpcode.StandardQuery, isAuthoritativeAnswer, false, request.RecursionDesired, isRecursionAllowed, false, request.CheckingDisabled, rcode, request.Question, newAnswer, authority, additional, request.EDNS is null ? ushort.MinValue : _udpPayloadSize, request.DnssecOk ? EDnsHeaderFlags.DNSSEC_OK : EDnsHeaderFlags.None, options) { Tag = response.Tag };
             finalResponse.SetMetadata(null, responseRtt);
 
             return finalResponse;
@@ -5172,7 +5215,7 @@ namespace DnsServerCore.Dns
 
                     DnsForwarderRecordData forwarder = conditionalForwarder.RDATA as DnsForwarderRecordData;
 
-                    if (forwarder.NameServer.IsIPEndPointStale)
+                    if (forwarder.NameServer.IsIPEndPointStale && !forwarder.Forwarder.Equals("this-server", StringComparison.OrdinalIgnoreCase))
                         continue; //skip stale forwarders since they failed to resolve
 
                     if (conditionalForwarderGroups.TryGetValue(forwarder.Priority, out List<DnsResourceRecord> conditionalForwardersEntry))
