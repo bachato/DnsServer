@@ -34,7 +34,7 @@ namespace DnsServerWindowsService
 
         public DnsServiceWorker()
         {
-            string configFolder = null;
+            string? configFolder = null;
 
             string[] args = Environment.GetCommandLineArgs();
             if (args.Length == 2)
@@ -74,7 +74,7 @@ namespace DnsServerWindowsService
             {
 #pragma warning disable CA1416 // Validate platform compatibility
 
-                using (RegistryKey key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Technitium\DNS Server", false))
+                using (RegistryKey? key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Technitium\DNS Server", false))
                 {
                     if (key is not null)
                         autoFirewallEntry = Convert.ToInt32(key.GetValue("AutoFirewallEntry", 1)) == 1;
@@ -87,7 +87,7 @@ namespace DnsServerWindowsService
 
             if (autoFirewallEntry)
             {
-                string appPath = Assembly.GetEntryAssembly().Location;
+                string appPath = Assembly.GetEntryAssembly()!.Location;
 
                 if (appPath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
                     appPath = appPath.Substring(0, appPath.Length - 4) + ".exe";
