@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 using DnsServerCore.Dns.ResourceRecords;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -764,7 +765,7 @@ namespace DnsServerCore.Dns.Zones
                     counter = byte.Parse(strOldSerial.Substring(8));
                 }
 
-                string strSerialDate = DateTime.UtcNow.ToString("yyyyMMdd");
+                string strSerialDate = DateTime.UtcNow.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
 
                 if (strOldSerialDate is null)
                 {
