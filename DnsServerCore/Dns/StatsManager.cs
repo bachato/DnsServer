@@ -489,7 +489,7 @@ namespace DnsServerCore.Dns
 
             if (forceReload || !_hourlyStatsCache.TryGetValue(hourlyDateTime, out HourlyStats hourlyStats))
             {
-                string hourlyStatsFile = Path.Combine(_statsFolder, dateTime.ToString("yyyyMMddHH") + ".stat");
+                string hourlyStatsFile = Path.Combine(_statsFolder, dateTime.ToString("yyyyMMddHH", CultureInfo.InvariantCulture) + ".stat");
 
                 if (File.Exists(hourlyStatsFile))
                 {
@@ -533,7 +533,7 @@ namespace DnsServerCore.Dns
 
             if (!_dailyStatsCache.TryGetValue(dailyDateTime, out StatCounter dailyStats))
             {
-                string dailyStatsFile = Path.Combine(_statsFolder, dateTime.ToString("yyyyMMdd") + ".dstat");
+                string dailyStatsFile = Path.Combine(_statsFolder, dateTime.ToString("yyyyMMdd", CultureInfo.InvariantCulture) + ".dstat");
 
                 if (File.Exists(dailyStatsFile))
                 {
@@ -588,7 +588,7 @@ namespace DnsServerCore.Dns
 
         private void SaveHourlyStats(DateTime dateTime, HourlyStats hourlyStats)
         {
-            string hourlyStatsFile = Path.Combine(_statsFolder, dateTime.ToString("yyyyMMddHH") + ".stat");
+            string hourlyStatsFile = Path.Combine(_statsFolder, dateTime.ToString("yyyyMMddHH", CultureInfo.InvariantCulture) + ".stat");
 
             try
             {
@@ -605,7 +605,7 @@ namespace DnsServerCore.Dns
 
         private void SaveDailyStats(DateTime dateTime, StatCounter dailyStats)
         {
-            string dailyStatsFile = Path.Combine(_statsFolder, dateTime.ToString("yyyyMMdd") + ".dstat");
+            string dailyStatsFile = Path.Combine(_statsFolder, dateTime.ToString("yyyyMMdd", CultureInfo.InvariantCulture) + ".dstat");
 
             try
             {
@@ -690,9 +690,9 @@ namespace DnsServerCore.Dns
                 string label;
 
                 if (utcFormat)
-                    label = lastDateTime.AddMinutes(1).ToString("O");
+                    label = lastDateTime.AddMinutes(1).ToString("O", CultureInfo.InvariantCulture);
                 else
-                    label = lastDateTime.AddMinutes(1).ToLocalTime().ToString("HH:mm");
+                    label = lastDateTime.AddMinutes(1).ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture);
 
                 labels[minute] = label;
 
@@ -842,9 +842,9 @@ namespace DnsServerCore.Dns
                 string label;
 
                 if (utcFormat)
-                    label = lastMonthDateTime.ToString("O");
+                    label = lastMonthDateTime.ToString("O", CultureInfo.InvariantCulture);
                 else
-                    label = lastMonthDateTime.ToLocalTime().ToString("MM/yyyy");
+                    label = lastMonthDateTime.ToLocalTime().ToString("MM/yyyy", CultureInfo.InvariantCulture);
 
                 labels[month] = label;
 
@@ -991,9 +991,9 @@ namespace DnsServerCore.Dns
                 string label;
 
                 if (utcFormat)
-                    label = lastDateTime.AddMinutes(1).ToString("O");
+                    label = lastDateTime.AddMinutes(1).ToString("O", CultureInfo.InvariantCulture);
                 else
-                    label = lastDateTime.AddMinutes(1).ToLocalTime().ToString("MM/dd HH:mm");
+                    label = lastDateTime.AddMinutes(1).ToLocalTime().ToString("MM/dd HH:mm", CultureInfo.InvariantCulture);
 
                 labels[minute] = label;
 
@@ -1125,9 +1125,9 @@ namespace DnsServerCore.Dns
                 string label;
 
                 if (utcFormat)
-                    label = lastDateTime.AddHours(1).ToString("O");
+                    label = lastDateTime.AddHours(1).ToString("O", CultureInfo.InvariantCulture);
                 else
-                    label = lastDateTime.AddHours(1).ToLocalTime().ToString("MM/dd HH") + ":00";
+                    label = lastDateTime.AddHours(1).ToLocalTime().ToString("MM/dd HH", CultureInfo.InvariantCulture) + ":00";
 
                 labels[hour] = label;
 
@@ -1260,9 +1260,9 @@ namespace DnsServerCore.Dns
                 string label;
 
                 if (utcFormat)
-                    label = lastDayDateTime.ToString("O");
+                    label = lastDayDateTime.ToString("O", CultureInfo.InvariantCulture);
                 else
-                    label = lastDayDateTime.ToLocalTime().ToString("MM/dd");
+                    label = lastDayDateTime.ToLocalTime().ToString("MM/dd", CultureInfo.InvariantCulture);
 
                 labels[day] = label;
 
