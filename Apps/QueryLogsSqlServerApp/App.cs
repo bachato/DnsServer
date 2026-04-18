@@ -83,7 +83,7 @@ namespace QueryLogsSqlServer
                             {
                                 command.CommandText = "SELECT Count(*) FROM dns_logs;";
 
-                                totalRecords = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0);
+                                totalRecords = Convert.ToInt32(await command.ExecuteScalarAsync());
                             }
 
                             int recordsToRemove = totalRecords - _maxLogRecords;
@@ -242,7 +242,7 @@ namespace QueryLogsSqlServer
                             SqlParameter paramResponseRtt = command.Parameters.Add("@response_rtt" + i, SqlDbType.Real);
                             SqlParameter paramRcode = command.Parameters.Add("@rcode" + i, SqlDbType.TinyInt);
                             SqlParameter paramQname = command.Parameters.Add("@qname" + i, SqlDbType.VarChar);
-                            SqlParameter paramQtype = command.Parameters.Add("@qtype" + i, SqlDbType.SmallInt);
+                            SqlParameter paramQtype = command.Parameters.Add("@qtype" + i, SqlDbType.Int);
                             SqlParameter paramQclass = command.Parameters.Add("@qclass" + i, SqlDbType.SmallInt);
                             SqlParameter paramAnswer = command.Parameters.Add("@answer" + i, SqlDbType.VarChar);
 
@@ -272,7 +272,7 @@ namespace QueryLogsSqlServer
                                 DnsQuestionRecord query = log.Request.Question[0];
 
                                 paramQname.Value = query.Name.ToLowerInvariant();
-                                paramQtype.Value = (short)query.Type;
+                                paramQtype.Value = (int)query.Type;
                                 paramQclass.Value = (short)query.Class;
                             }
                             else
@@ -394,7 +394,7 @@ BEGIN
         response_rtt REAL,
         rcode TINYINT NOT NULL,
         qname VARCHAR(255),
-        qtype SMALLINT,
+        qtype INT,
         qclass SMALLINT,
         answer VARCHAR(4000)
     );
@@ -403,6 +403,15 @@ END
 IF NOT EXISTS(SELECT * FROM sys.columns WHERE name = 'server' AND object_id = OBJECT_ID('dns_logs'))
 BEGIN
     ALTER TABLE dns_logs ADD server varchar(255);
+END
+
+IF NOT EXISTS(SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='dns_logs' AND COLUMN_NAME='qtype' AND DATA_TYPE='INT')
+BEGIN
+    DROP INDEX index_qtype ON dns_logs;
+    DROP INDEX index_query ON dns_logs;
+    DROP INDEX index_all ON dns_logs;
+
+    ALTER TABLE dns_logs ALTER COLUMN qtype INT;
 END
 
 IF NOT EXISTS(SELECT * FROM sys.indexes WHERE name = 'index_server' AND object_id = OBJECT_ID('dns_logs'))
@@ -660,7 +669,7 @@ END
                         command.Parameters.AddWithValue("@qname", qname);
 
                     if (qtype is not null)
-                        command.Parameters.AddWithValue("@qtype", (short)qtype);
+                        command.Parameters.AddWithValue("@qtype", (ushort)qtype);
 
                     if (qclass is not null)
                         command.Parameters.AddWithValue("@qclass", (short)qclass);
@@ -694,7 +703,7 @@ SELECT
     answer
 FROM
     dns_logs
-" + (string.IsNullOrEmpty(whereClause) ? "" : "WHERE " + whereClause + " ") + @"
+" + (string.IsNullOrEmpty(whereClause) ? "" : "WHERE " + whereClause) + @"
 ORDER BY dlid" + (descendingOrder ? " DESC" : "") + @"
 OFFSET @offset ROWS
 FETCH NEXT @limit ROWS ONLY";
@@ -724,7 +733,7 @@ FETCH NEXT @limit ROWS ONLY";
                         command.Parameters.AddWithValue("@qname", qname);
 
                     if (qtype is not null)
-                        command.Parameters.AddWithValue("@qtype", (short)qtype);
+                        command.Parameters.AddWithValue("@qtype", (ushort)qtype);
 
                     if (qclass is not null)
                         command.Parameters.AddWithValue("@qclass", (short)qclass);
@@ -747,7 +756,7 @@ FETCH NEXT @limit ROWS ONLY";
                             if (reader.IsDBNull(7))
                                 question = null;
                             else
-                                question = new DnsQuestionRecord(reader.GetString(7), (DnsResourceRecordType)reader.GetInt16(8), (DnsClass)reader.GetInt16(9), false);
+                                question = new DnsQuestionRecord(reader.GetString(7), (DnsResourceRecordType)reader.GetInt32(8), (DnsClass)reader.GetInt16(9), false);
 
                             string? answer;
 
