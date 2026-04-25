@@ -58,9 +58,20 @@ then
 
     if [ -d $dotnetDir ]
     then
-        echo "Uninstalling .NET Runtime..."
-        rm /usr/bin/dotnet >/dev/null 2>&1
-        rm -rf $dotnetDir >/dev/null 2>&1
+        echo ""
+        printf "Do you want to uninstall .NET Runtime (Y/n): "
+        read -r answer0 < /dev/tty
+
+        case "$answer0" in
+            [Nn]* )
+                echo ".NET Runtime was not uninstalled."
+                ;;
+            * )
+                echo "Uninstalling .NET Runtime..."
+                rm /usr/bin/dotnet >/dev/null 2>&1
+                rm -rf $dotnetDir >/dev/null 2>&1
+                ;;
+        esac
     fi
 
     if [ -d "$dnsConfig" ]
